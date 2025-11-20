@@ -608,6 +608,60 @@
         <button onclick="submitAnswer('A')" id="btnA"></button>
         <button onclick="submitAnswer('B')" id="btnB"></button>
       </div>
+
+      <!-- Add these AFTER the questionBox div and BEFORE the announcements div -->
+
+      <!-- State 1: Poll Not Started -->
+      <div id="pollNotStarted" class="box hidden">
+        <h3 style="color: #1e3a8a; font-size: 1.5rem; text-align: center; margin-bottom: 20px;">
+          <i class="fas fa-hourglass-start" style="color: #3b82f6; margin-right: 10px;"></i>
+          Poll Will Begin Soon
+        </h3>
+        <p style="text-align: center; color: #6b7280; font-size: 1rem; line-height: 1.8;">
+          The trainer is preparing the poll. Get ready to answer questions!
+        </p>
+        <div style="margin-top: 30px; padding: 20px; background: #f0f9ff; border-radius: 12px; text-align: center; border-left: 4px solid #3b82f6;">
+          <p style="color: #0c5460; font-size: 0.95rem;">
+            <i class="fas fa-info-circle"></i> Questions will appear once the poll starts
+          </p>
+        </div>
+      </div>
+
+      <!-- State 2: Poll Ended -->
+      <div id="pollEnded" class="box hidden">
+        <h3 style="color: #dc3545; font-size: 1.5rem; text-align: center; margin-bottom: 20px;">
+          <i class="fas fa-check-circle" style="color: #10b981; margin-right: 10px;"></i>
+          Poll Has Ended
+        </h3>
+        <p style="text-align: center; color: #6b7280; font-size: 1rem; line-height: 1.8; margin-bottom: 30px;">
+          Thank you for participating in the poll!
+        </p>
+        
+        <div id="finalGraphContainer" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 24px 20px; border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.15);">
+          <h4 style="color: #1e3a8a; font-size: 1.05rem; margin-bottom: 20px; text-align: center;">Your Final Results</h4>
+          
+          <div class="graph-item">
+            <div class="graph-label">
+              <span>Option A: <strong id="finalCountA">0</strong> times</span>
+              <span>(<span id="finalPercA">0</span>%)</span>
+            </div>
+            <svg width="100%" height="15">
+              <rect id="finalBarA" x="0" y="0" height="15" fill="#3b82f6" />
+            </svg>
+          </div>
+          
+          <div class="graph-item">
+            <div class="graph-label">
+              <span>Option B: <strong id="finalCountB">0</strong> times</span>
+              <span>(<span id="finalPercB">0</span>%)</span>
+            </div>
+            <svg width="100%" height="15">
+              <rect id="finalBarB" x="0" y="0" height="15" fill="#10b981" />
+            </svg>
+          </div>
+        </div>
+        
+      </div>
       
       <div class="announcements">
         <h3><i class="fas fa-info-circle"></i> Instructions</h3>
@@ -647,6 +701,9 @@
         rollNumber = savedRoll;
         studentName = savedName;
         
+        // Clean up any old listeners first
+        cleanupAllListeners();
+        
         document.getElementById("loginBox").classList.add("hidden");
         document.getElementById("header").classList.remove("hidden");
         document.getElementById("userName").innerText = studentName;
@@ -656,7 +713,7 @@
         watchAdminControl();
       }
     };
-
+    
     function start() {
       studentName = document.getElementById("name").value.trim();
       rollNumber = document.getElementById("roll").value.trim();
@@ -665,6 +722,9 @@
         alert("Please enter both name and roll number!");
         return;
       }
+
+      // Clean up any old listeners first
+      cleanupAllListeners();
 
       localStorage.setItem("studentName", studentName);
       localStorage.setItem("studentRoll", rollNumber);
@@ -679,23 +739,44 @@
       watchAdminControl();
     }
 
+
     function logout() {
+      // Clean up all listeners completely
+      cleanupAllListeners();
+      
+      // NOW clear the variables
       localStorage.removeItem("studentName");
       localStorage.removeItem("studentRoll");
       
       rollNumber = "";
       studentName = "";
       
+      // Hide all boxes
       document.getElementById("header").classList.add("hidden");
       document.getElementById("waiting").classList.add("hidden");
       document.getElementById("questionBox").classList.add("hidden");
       document.getElementById("graphContainer").classList.add("hidden");
       document.getElementById("answerHistory").classList.add("hidden");
       document.getElementById("loginBox").classList.remove("hidden");
+      document.getElementById("pollNotStarted").classList.add("hidden");
+      document.getElementById("pollEnded").classList.add("hidden");
       
+      // Clear input fields
       document.getElementById("name").value = "";
       document.getElementById("roll").value = "";
+
+      // Reset all statistics display to zero
+      document.getElementById("countA").innerText = "0";
+      document.getElementById("countB").innerText = "0";
+      document.getElementById("percA").innerText = "0";
+      document.getElementById("percB").innerText = "0";
+      document.getElementById("barA").setAttribute("width", "0");
+      document.getElementById("barB").setAttribute("width", "0");
+      
+      // Clear answer history
+      document.getElementById("answerList").innerHTML = "";
     }
+
 
     function initializeStudent() {
       const studentRef = db.ref("students/" + rollNumber);
@@ -717,22 +798,61 @@
       });
     }
 
-    function watchAdminControl() {
-      db.ref("activeQuestion").on("value", snap => {
-        const data = snap.val();
-        if (!data) return;
+    function cleanupAllListeners() {
+      // Clean up any existing listeners completely
+      db.ref("pollSession").off();
+      db.ref("activeQuestion").off();
+      if (rollNumber) {
+        db.ref("students/" + rollNumber).off();
+      }
+    }
 
-        if (data.status === "waiting") {
+    function watchAdminControl() {
+      // Remove all old listeners first
+      db.ref("pollSession").off("value");
+      db.ref("activeQuestion").off("value");
+      
+      // Create main pollSession listener that stays active
+      db.ref("pollSession").on("value", snap => {
+        const pollData = snap.val();
+        
+        if (!pollData) {
           showWaiting();
-        } else if (data.status === "active") {
-          loadQuestion(data.qid);
+          return;
+        }
+
+        const status = pollData.status;
+
+        if (status === "not_started") {
+          // Remove activeQuestion listener when poll not started
+          db.ref("activeQuestion").off("value");
+          showPollNotStarted();
+        } else if (status === "active") {
+          // Remove old activeQuestion listener before creating new one
+          db.ref("activeQuestion").off("value");
+          
+          // Create new activeQuestion listener
+          db.ref("activeQuestion").on("value", qSnap => {
+            const data = qSnap.val();
+            if (!data || data.status === "waiting") {
+              showWaiting();
+            } else if (data.status === "active") {
+              loadQuestion(data.qid);
+            }
+          });
+        } else if (status === "ended") {
+          // Remove activeQuestion listener when poll ends
+          db.ref("activeQuestion").off("value");
+          showPollEnded();
         }
       });
     }
 
     function showWaiting() {
       document.getElementById("waiting").classList.remove("hidden");
+      document.getElementById("pollNotStarted").classList.add("hidden");
       document.getElementById("questionBox").classList.add("hidden");
+      document.getElementById("pollEnded").classList.add("hidden");
     }
 
     function loadQuestion(qid) {
@@ -750,9 +870,11 @@
           }
 
           document.getElementById("graphContainer").classList.add("hidden");
-          
+
           document.getElementById("waiting").classList.add("hidden");
           document.getElementById("questionBox").classList.remove("hidden");
+          document.getElementById("pollNotStarted").classList.add("hidden");
+          document.getElementById("pollEnded").classList.add("hidden");
 
           document.getElementById("qText").innerText = q.text;
           document.getElementById("btnA").innerText = q.optionA;
@@ -824,41 +946,44 @@
     }
 
     function loadStudentSummary() {
-  db.ref("students/" + rollNumber).on("value", snap => {
-    const student = snap.val();
-    if (!student) return;
+      // First, remove any existing listener
+      db.ref("students/" + rollNumber).off("value");
+      
+      // Then create new listener
+      db.ref("students/" + rollNumber).on("value", snap => {
+        const student = snap.val();
+        if (!student) return;
 
-    const totalA = student.totalA || 0;
-    const totalB = student.totalB || 0;
-    const total = student.totalAnswered || 0;
-    
-    if (total > 0) {
-      document.getElementById("graphContainer").classList.remove("hidden");
-      
-      const percA = total > 0 ? Math.round((totalA / total) * 100) : 0;
-      const percB = total > 0 ? Math.round((totalB / total) * 100) : 0;
-      
-      document.getElementById("countA").innerText = totalA;
-      document.getElementById("countB").innerText = totalB;
-      document.getElementById("percA").innerText = percA;
-      document.getElementById("percB").innerText = percB;
-      
-      // Use setTimeout to ensure container is visible and has proper width
-      setTimeout(() => {
-        const container = document.getElementById("graphContainer");
-        const svgElements = container.querySelectorAll('svg');
+        const totalA = student.totalA || 0;
+        const totalB = student.totalB || 0;
+        const total = student.totalAnswered || 0;
         
-        if (svgElements.length > 0) {
-          const svgWidth = svgElements[0].clientWidth;
-          const barWidth = svgWidth > 0 ? svgWidth : container.offsetWidth - 50;
+        if (total > 0) {
+          document.getElementById("graphContainer").classList.remove("hidden");
           
-          document.getElementById("barA").setAttribute("width", (percA / 100) * barWidth);
-          document.getElementById("barB").setAttribute("width", (percB / 100) * barWidth);
+          const percA = total > 0 ? Math.round((totalA / total) * 100) : 0;
+          const percB = total > 0 ? Math.round((totalB / total) * 100) : 0;
+          
+          document.getElementById("countA").innerText = totalA;
+          document.getElementById("countB").innerText = totalB;
+          document.getElementById("percA").innerText = percA;
+          document.getElementById("percB").innerText = percB;
+          
+          setTimeout(() => {
+            const container = document.getElementById("graphContainer");
+            const svgElements = container.querySelectorAll('svg');
+            
+            if (svgElements.length > 0) {
+              const svgWidth = svgElements[0].clientWidth;
+              const barWidth = svgWidth > 0 ? svgWidth : container.offsetWidth - 50;
+              
+              document.getElementById("barA").setAttribute("width", (percA / 100) * barWidth);
+              document.getElementById("barB").setAttribute("width", (percB / 100) * barWidth);
+            }
+          }, 150);
         }
-      }, 150);
+      });
     }
-  });
-}
 
     function toggleAnswerHistory() {
       const historyDiv = document.getElementById("answerHistory");
@@ -898,8 +1023,6 @@
             const answer = typeof response === 'string' ? response : response.answer;
             
             if (question) {
-              const answerText = answer === "A" ? question.optionA : question.optionB;
-              
               const answerDiv = document.createElement("div");
               answerDiv.className = "answer-item";
               answerDiv.style.borderLeftColor = answer === "A" ? "#3b82f6" : "#10b981";
@@ -907,8 +1030,13 @@
               answerDiv.innerHTML = `
                 <div class="answer-question-number">Question ${index + 1}:</div>
                 <div class="answer-question-text">${question.text}</div>
-                <div class="answer-response" style="border-color: ${answer === "A" ? "#3b82f6" : "#10b981"};">
-                  <strong style="color: ${answer === "A" ? "#3b82f6" : "#10b981"};">Your Answer (${answer}):</strong> ${answerText}
+                <div style="margin-top: 12px;">
+                  <div style="padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; background: ${answer === "A" ? "#dbeafe" : "#f7fafc"}; border-left: 3px solid ${answer === "A" ? "#3b82f6" : "#e5e7eb"};">
+                    <strong style="color: ${answer === "A" ? "#3b82f6" : "#6b7280"};">A:</strong> ${question.optionA}${answer === "A" ? " ✓" : ""}
+                  </div>
+                  <div style="padding: 10px 12px; border-radius: 8px; background: ${answer === "B" ? "#d1fae5" : "#f7fafc"}; border-left: 3px solid ${answer === "B" ? "#10b981" : "#e5e7eb"};">
+                    <strong style="color: ${answer === "B" ? "#10b981" : "#6b7280"};">B:</strong> ${question.optionB}${answer === "B" ? " ✓" : ""}
+                  </div>
                 </div>
               `;
               
@@ -921,6 +1049,62 @@
             }
           });
         });
+      });
+    }
+
+    function showPollNotStarted() {
+      document.getElementById("pollNotStarted").classList.remove("hidden");
+      document.getElementById("waiting").classList.add("hidden");
+      document.getElementById("questionBox").classList.add("hidden");
+      document.getElementById("pollEnded").classList.add("hidden");
+    }
+
+    function showWaiting() {
+      document.getElementById("waiting").classList.remove("hidden");
+      document.getElementById("pollNotStarted").classList.add("hidden");
+      document.getElementById("questionBox").classList.add("hidden");
+      document.getElementById("pollEnded").classList.add("hidden");
+    }
+
+    function showPollEnded() {
+      document.getElementById("pollEnded").classList.remove("hidden");
+      document.getElementById("pollNotStarted").classList.add("hidden");
+      document.getElementById("waiting").classList.add("hidden");
+      document.getElementById("questionBox").classList.add("hidden");
+      
+      // Display final statistics
+      loadFinalStats();
+    }
+
+    function loadFinalStats() {
+      db.ref("students/" + rollNumber).once("value", snap => {
+        const student = snap.val();
+        if (!student) return;
+
+        const totalA = student.totalA || 0;
+        const totalB = student.totalB || 0;
+        const total = student.totalAnswered || 0;
+        
+        const percA = total > 0 ? Math.round((totalA / total) * 100) : 0;
+        const percB = total > 0 ? Math.round((totalB / total) * 100) : 0;
+        
+        document.getElementById("finalCountA").innerText = totalA;
+        document.getElementById("finalCountB").innerText = totalB;
+        document.getElementById("finalPercA").innerText = percA;
+        document.getElementById("finalPercB").innerText = percB;
+        
+        setTimeout(() => {
+          const container = document.getElementById("finalGraphContainer");
+          const svgElements = container.querySelectorAll('svg');
+          
+          if (svgElements.length > 0) {
+            const svgWidth = svgElements[0].clientWidth;
+            const barWidth = svgWidth > 0 ? svgWidth : container.offsetWidth - 50;
+            
+            document.getElementById("finalBarA").setAttribute("width", (percA / 100) * barWidth);
+            document.getElementById("finalBarB").setAttribute("width", (percB / 100) * barWidth);
+          }
+        }, 150);
       });
     }
   </script>
