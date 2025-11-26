@@ -45,8 +45,6 @@
       background-color: white;
     }
     
-  
-    
     /* College Header */
     .college-header {
       text-align: center;
@@ -171,11 +169,6 @@
     }
     
     /* Login Box */
-    #loginBox {
-      background: white;
-      margin-top: 0;
-    }
-    
     #loginBox label {
       display: block;
       font-weight: 600;
@@ -256,8 +249,8 @@
       box-shadow: 0 3px 12px rgba(30, 58, 138, 0.3);
     }
     
-    /* Waiting Box */
-    #waiting h3 {
+    /* Waiting/Stats Box */
+    #statsBox h3 {
       color: var(--primary-color);
       font-size: 1.3rem;
       margin-bottom: 12px;
@@ -265,7 +258,7 @@
       font-weight: 600;
     }
     
-    #waiting > p {
+    #statsBox > p {
       color: #6b7280;
       text-align: center;
       margin-bottom: 24px;
@@ -273,18 +266,18 @@
       line-height: 1.6;
     }
     
-    #waiting button {
+    #statsBox button {
       background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
       color: white;
       box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
     }
     
-    #waiting button:active {
+    #statsBox button:active {
       transform: scale(0.98);
     }
     
     /* Graph Container */
-    #graphContainer {
+    .graph-container {
       background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
       padding: 24px 20px;
       border-radius: 16px;
@@ -292,7 +285,7 @@
       border: 1px solid rgba(59, 130, 246, 0.15);
     }
     
-    #graphContainer h4 {
+    .graph-container h4 {
       color: var(--primary-color);
       font-size: 1.05rem;
       margin-bottom: 20px;
@@ -331,14 +324,6 @@
     
     .graph-item svg rect {
       transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    #barA {
-      fill: var(--secondary-color);
-    }
-    
-    #barB {
-      fill: var(--success-color);
     }
     
     /* Answer History */
@@ -494,6 +479,42 @@
       transform: none !important;
     }
     
+    /* State Messages */
+    .state-message {
+      text-align: center;
+      padding: 30px 20px;
+    }
+    
+    .state-message h3 {
+      color: var(--primary-color);
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .state-message p {
+      color: #6b7280;
+      font-size: 1rem;
+      line-height: 1.8;
+    }
+    
+    .state-info-box {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f0f9ff;
+      border-radius: 12px;
+      text-align: center;
+      border-left: 4px solid var(--secondary-color);
+    }
+    
+    .state-info-box p {
+      color: #0c5460;
+      font-size: 0.95rem;
+    }
+    
     /* Announcements */
     .announcements {
       margin-top: 24px;
@@ -553,6 +574,7 @@
         </button>
       </div>
 
+      <!-- STATE 1: LOGIN -->
       <div id="loginBox" class="box">
         <label for="name">Enter Your Name:</label>
         <input type="text" id="name" placeholder="e.g., John Doe" />
@@ -560,16 +582,35 @@
         <label for="roll">Enter Your Roll Number:</label>
         <input type="text" id="roll" placeholder="e.g., 2024001" />
         
-        <button onclick="start()" class="full-width">
+        <button onclick="handleLogin()" class="full-width">
           <i class="fas fa-arrow-right"></i> Start
         </button>
       </div>
 
-      <div id="waiting" class="box hidden">
+      <!-- STATE 2: POLL NOT STARTED -->
+      <div id="pollNotStartedBox" class="box hidden">
+        <div class="state-message">
+          <h3><i class="fas fa-hourglass-start" style="color: #3b82f6;"></i> Poll Will Begin Soon</h3>
+          <p>The trainer is preparing the poll. Get ready to answer questions!</p>
+          <div class="state-info-box">
+            <p><i class="fas fa-info-circle"></i> Questions will appear once the poll starts</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE 3: QUESTION DISPLAY -->
+      <div id="questionBox" class="box hidden">
+        <h3 id="qText"></h3>
+        <button onclick="submitAnswer('A')" id="btnA"></button>
+        <button onclick="submitAnswer('B')" id="btnB"></button>
+      </div>
+
+      <!-- STATE 4: WAITING/STATS (Between questions) -->
+      <div id="statsBox" class="box hidden">
         <h3>Waiting for next question...</h3>
         <p>The trainer will activate the next question shortly.</p>
         
-        <div id="graphContainer" class="hidden">
+        <div id="graphContainer" class="graph-container">
           <h4>Your Response Summary</h4>
           
           <div class="graph-item">
@@ -578,7 +619,7 @@
               <span>(<span id="percA">0</span>%)</span>
             </div>
             <svg width="100%" height="15">
-              <rect id="barA" x="0" y="0" height="15" fill="#3b82f6" />
+              <rect id="barA" x="0" y="0" height="15" fill="#3b82f6" width="0" />
             </svg>
           </div>
           
@@ -588,57 +629,26 @@
               <span>(<span id="percB">0</span>%)</span>
             </div>
             <svg width="100%" height="15">
-              <rect id="barB" x="0" y="0" height="15" fill="#10b981" />
+              <rect id="barB" x="0" y="0" height="15" fill="#10b981" width="0" />
             </svg>
           </div>
         </div>
         
-        <button onclick="toggleAnswerHistory()">
+        <button onclick="toggleAnswerHistory()" style="margin-top: 24px;">
           <i class="fas fa-history"></i> View Your Answers
         </button>
+
       </div>
 
-      <div id="answerHistory" class="box hidden">
-        <h4>Your Answer History</h4>
-        <div id="answerList"></div>
-      </div>
-
-      <div id="questionBox" class="box hidden">
-        <h3 id="qText"></h3>
-        <button onclick="submitAnswer('A')" id="btnA"></button>
-        <button onclick="submitAnswer('B')" id="btnB"></button>
-      </div>
-
-      <!-- Add these AFTER the questionBox div and BEFORE the announcements div -->
-
-      <!-- State 1: Poll Not Started -->
-      <div id="pollNotStarted" class="box hidden">
-        <h3 style="color: #1e3a8a; font-size: 1.5rem; text-align: center; margin-bottom: 20px;">
-          <i class="fas fa-hourglass-start" style="color: #3b82f6; margin-right: 10px;"></i>
-          Poll Will Begin Soon
-        </h3>
-        <p style="text-align: center; color: #6b7280; font-size: 1rem; line-height: 1.8;">
-          The trainer is preparing the poll. Get ready to answer questions!
-        </p>
-        <div style="margin-top: 30px; padding: 20px; background: #f0f9ff; border-radius: 12px; text-align: center; border-left: 4px solid #3b82f6;">
-          <p style="color: #0c5460; font-size: 0.95rem;">
-            <i class="fas fa-info-circle"></i> Questions will appear once the poll starts
-          </p>
+      <!-- STATE 5: POLL ENDED -->
+      <div id="pollEndedBox" class="box hidden">
+        <div class="state-message">
+          <h3><i class="fas fa-check-circle" style="color: #10b981;"></i> Poll Has Ended</h3>
+          <p>Thank you for participating in the poll!</p>
         </div>
-      </div>
-
-      <!-- State 2: Poll Ended -->
-      <div id="pollEnded" class="box hidden">
-        <h3 style="color: #dc3545; font-size: 1.5rem; text-align: center; margin-bottom: 20px;">
-          <i class="fas fa-check-circle" style="color: #10b981; margin-right: 10px;"></i>
-          Poll Has Ended
-        </h3>
-        <p style="text-align: center; color: #6b7280; font-size: 1rem; line-height: 1.8; margin-bottom: 30px;">
-          Thank you for participating in the poll!
-        </p>
         
-        <div id="finalGraphContainer" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 24px 20px; border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.15);">
-          <h4 style="color: #1e3a8a; font-size: 1.05rem; margin-bottom: 20px; text-align: center;">Your Final Results</h4>
+        <div class="graph-container">
+          <h4>Your Final Results</h4>
           
           <div class="graph-item">
             <div class="graph-label">
@@ -646,7 +656,7 @@
               <span>(<span id="finalPercA">0</span>%)</span>
             </div>
             <svg width="100%" height="15">
-              <rect id="finalBarA" x="0" y="0" height="15" fill="#3b82f6" />
+              <rect id="finalBarA" x="0" y="0" height="15" fill="#3b82f6" width="0" />
             </svg>
           </div>
           
@@ -656,27 +666,39 @@
               <span>(<span id="finalPercB">0</span>%)</span>
             </div>
             <svg width="100%" height="15">
-              <rect id="finalBarB" x="0" y="0" height="15" fill="#10b981" />
+              <rect id="finalBarB" x="0" y="0" height="15" fill="#10b981" width="0" />
             </svg>
           </div>
         </div>
         
+        <button onclick="toggleAnswerHistory()" style="margin-top: 24px;">
+          <i class="fas fa-history"></i> View Your Answers
+        </button>
+        
+        <!-- ANSWER HISTORY (Shown when toggled) -->
+        <div id="answerHistory" class="box hidden">
+          <h4>Your Answer History</h4>
+          <div id="answerList"></div>
+        </div>
       </div>
       
-      <div class="announcements">
-        <h3><i class="fas fa-info-circle"></i> Instructions</h3>
-        <p>• Answer each poll question as it appears</p>
-        <p>• You can only answer each question <strong>once</strong></p>
-        <p>• View your answer history anytime while waiting</p>
-      </div>
       
     </div>
+    
+    <div class="announcements">
+      <h3><i class="fas fa-info-circle"></i> Instructions</h3>
+      <p>• Answer each poll question as it appears</p>
+      <p>• You can only answer each question <strong>once</strong></p>
+      <p>• View your answer history anytime while waiting</p>
+    </div>
+    
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
   <script>
+    // ==================== FIREBASE CONFIG ====================
     const firebaseConfig = {
       apiKey: "AIzaSyCGdG9BxGFE3G6hgejFZEHQ9L4z9bpdQK4",
       authDomain: "poll-psgim.firebaseapp.com",
@@ -690,303 +712,305 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let rollNumber = "";
-    let studentName = "";
+    // ==================== STATE MANAGEMENT ====================
+    let appState = {
+      rollNumber: "",
+      studentName: "",
+      listeners: {}
+    };
 
+    // ==================== INITIALIZATION ====================
     window.onload = function() {
+      restoreUserSession();
+    };
+
+    function restoreUserSession() {
       const savedRoll = localStorage.getItem("studentRoll");
       const savedName = localStorage.getItem("studentName");
       
       if (savedRoll && savedName) {
-        rollNumber = savedRoll;
-        studentName = savedName;
+        appState.rollNumber = savedRoll;
+        appState.studentName = savedName;
         
-        // Clean up any old listeners first
-        cleanupAllListeners();
-        
-        document.getElementById("loginBox").classList.add("hidden");
-        document.getElementById("header").classList.remove("hidden");
-        document.getElementById("userName").innerText = studentName;
-        
-        initializeStudent();
-        loadStudentSummary();
-        watchAdminControl();
+        showLoggedInUI();
+        initializePollWatchers();
       }
-    };
-    
-    function start() {
-      studentName = document.getElementById("name").value.trim();
-      rollNumber = document.getElementById("roll").value.trim();
+    }
+
+    // ==================== LOGIN ====================
+    function handleLogin() {
+      const name = document.getElementById("name").value.trim();
+      const roll = document.getElementById("roll").value.trim();
       
-      if (studentName === "" || rollNumber === "") {
+      if (!name || !roll) {
         alert("Please enter both name and roll number!");
         return;
       }
 
-      // Clean up any old listeners first
-      cleanupAllListeners();
+      appState.rollNumber = roll;
+      appState.studentName = name;
 
-      localStorage.setItem("studentName", studentName);
-      localStorage.setItem("studentRoll", rollNumber);
+      localStorage.setItem("studentName", name);
+      localStorage.setItem("studentRoll", roll);
 
-      initializeStudent();
-      
-      document.getElementById("loginBox").classList.add("hidden");
-      document.getElementById("header").classList.remove("hidden");
-      document.getElementById("userName").innerText = studentName;
-      
-      loadStudentSummary();
-      watchAdminControl();
-    }
-
-
-    function logout() {
-      // Clean up all listeners completely
-      cleanupAllListeners();
-      
-      // NOW clear the variables
-      localStorage.removeItem("studentName");
-      localStorage.removeItem("studentRoll");
-      
-      rollNumber = "";
-      studentName = "";
-      
-      // Hide all boxes
-      document.getElementById("header").classList.add("hidden");
-      document.getElementById("waiting").classList.add("hidden");
-      document.getElementById("questionBox").classList.add("hidden");
-      document.getElementById("graphContainer").classList.add("hidden");
-      document.getElementById("answerHistory").classList.add("hidden");
-      document.getElementById("loginBox").classList.remove("hidden");
-      document.getElementById("pollNotStarted").classList.add("hidden");
-      document.getElementById("pollEnded").classList.add("hidden");
-      
-      // Clear input fields
-      document.getElementById("name").value = "";
-      document.getElementById("roll").value = "";
-
-      // Reset all statistics display to zero
-      document.getElementById("countA").innerText = "0";
-      document.getElementById("countB").innerText = "0";
-      document.getElementById("percA").innerText = "0";
-      document.getElementById("percB").innerText = "0";
-      document.getElementById("barA").setAttribute("width", "0");
-      document.getElementById("barB").setAttribute("width", "0");
-      
-      // Clear answer history
-      document.getElementById("answerList").innerHTML = "";
-    }
-
-
-    function initializeStudent() {
-      const studentRef = db.ref("students/" + rollNumber);
-      
-      studentRef.once("value", snap => {
+      // Create student record in Firebase
+      db.ref("students/" + roll).once("value", snap => {
         if (!snap.exists()) {
-          studentRef.set({
-            rollNumber: rollNumber,
+          db.ref("students/" + roll).set({
+            rollNumber: roll,
             totalAnswered: 0,
             totalA: 0,
             totalB: 0,
             lastActive: Date.now()
           });
         } else {
-          studentRef.update({
-            lastActive: Date.now()
-          });
+          db.ref("students/" + roll).update({ lastActive: Date.now() });
         }
       });
+
+      showLoggedInUI();
+      initializePollWatchers();
     }
 
-    function cleanupAllListeners() {
-      // Clean up any existing listeners completely
-      db.ref("pollSession").off();
-      db.ref("activeQuestion").off();
-      if (rollNumber) {
-        db.ref("students/" + rollNumber).off();
-      }
+    // ==================== UI STATE MANAGEMENT ====================
+    function hideAllStates() {
+      document.getElementById("loginBox").classList.add("hidden");
+      document.getElementById("pollNotStartedBox").classList.add("hidden");
+      document.getElementById("questionBox").classList.add("hidden");
+      document.getElementById("statsBox").classList.add("hidden");
+      document.getElementById("pollEndedBox").classList.add("hidden");
+      document.getElementById("answerHistory").classList.add("hidden");
     }
 
-    function watchAdminControl() {
-      // Remove all old listeners first
-      db.ref("pollSession").off("value");
-      db.ref("activeQuestion").off("value");
-      
-      // Create main pollSession listener that stays active
+    function showLoggedInUI() {
+      document.getElementById("loginBox").classList.add("hidden");
+      document.getElementById("header").classList.remove("hidden");
+      document.getElementById("userName").innerText = appState.studentName;
+    }
+
+    function showPollNotStarted() {
+      hideAllStates();
+      document.getElementById("pollNotStartedBox").classList.remove("hidden");
+    }
+
+    function showQuestion() {
+      hideAllStates();
+      document.getElementById("questionBox").classList.remove("hidden");
+    }
+
+    function showWaitingForNextQuestion() {
+      hideAllStates();
+      document.getElementById("statsBox").classList.remove("hidden");
+      updateStudentStats();
+    }
+
+    function showPollEnded() {
+      hideAllStates();
+      document.getElementById("pollEndedBox").classList.remove("hidden");
+      loadFinalStats();
+      loadAnswerHistory();
+    }
+
+    // ==================== FIREBASE WATCHERS ====================
+    function initializePollWatchers() {
+      // Watch poll session status
       db.ref("pollSession").on("value", snap => {
         const pollData = snap.val();
         
-        if (!pollData) {
-          showWaiting();
+        if (!pollData || pollData.status === "not_started") {
+          clearActiveQuestionListener();
+          showPollNotStarted();
           return;
         }
 
-        const status = pollData.status;
+        if (pollData.status === "active") {
+          watchActiveQuestion();
+          return;
+        }
 
-        if (status === "not_started") {
-          // Remove activeQuestion listener when poll not started
-          db.ref("activeQuestion").off("value");
-          showPollNotStarted();
-        } else if (status === "active") {
-          // Remove old activeQuestion listener before creating new one
-          db.ref("activeQuestion").off("value");
-          
-          // Create new activeQuestion listener
-          db.ref("activeQuestion").on("value", qSnap => {
-            const data = qSnap.val();
-            if (!data || data.status === "waiting") {
-              showWaiting();
-            } else if (data.status === "active") {
-              loadQuestion(data.qid);
-            }
-          });
-        } else if (status === "ended") {
-          // Remove activeQuestion listener when poll ends
-          db.ref("activeQuestion").off("value");
+        if (pollData.status === "ended") {
+          clearActiveQuestionListener();
           showPollEnded();
+          return;
         }
       });
     }
 
-    function showWaiting() {
-      document.getElementById("waiting").classList.remove("hidden");
-      document.getElementById("pollNotStarted").classList.add("hidden");
-      document.getElementById("questionBox").classList.add("hidden");
-      document.getElementById("pollEnded").classList.add("hidden");
+    function watchActiveQuestion() {
+      // Remove old listener if exists
+      clearActiveQuestionListener();
+
+      // Create new listener
+      appState.listeners.activeQuestion = db.ref("activeQuestion").on("value", snap => {
+        const data = snap.val();
+        
+        if (!data || data.status === "waiting") {
+          showWaitingForNextQuestion();
+        } else if (data.status === "active") {
+          loadAndShowQuestion(data.qid);
+        }
+      });
     }
 
-    function loadQuestion(qid) {
-      db.ref("responses/" + rollNumber + "/" + qid).once("value", existingSnap => {
+    function clearActiveQuestionListener() {
+      if (appState.listeners.activeQuestion) {
+        db.ref("activeQuestion").off("value", appState.listeners.activeQuestion);
+        appState.listeners.activeQuestion = null;
+      }
+    }
+
+    // ==================== QUESTION LOGIC ====================
+    function loadAndShowQuestion(qid) {
+      // Check if already answered
+      db.ref("responses/" + appState.rollNumber + "/" + qid).once("value", existingSnap => {
         if (existingSnap.exists()) {
-          showWaiting();
+          // Already answered, show stats
+          showWaitingForNextQuestion();
           return;
         }
 
+        // Load and display question
         db.ref("questions/" + qid).once("value", snap => {
           const q = snap.val();
           if (!q) {
-            showWaiting();
+            showWaitingForNextQuestion();
             return;
           }
-
-          document.getElementById("graphContainer").classList.add("hidden");
-
-          document.getElementById("waiting").classList.add("hidden");
-          document.getElementById("questionBox").classList.remove("hidden");
-          document.getElementById("pollNotStarted").classList.add("hidden");
-          document.getElementById("pollEnded").classList.add("hidden");
 
           document.getElementById("qText").innerText = q.text;
           document.getElementById("btnA").innerText = q.optionA;
           document.getElementById("btnB").innerText = q.optionB;
           document.getElementById("btnA").disabled = false;
           document.getElementById("btnB").disabled = false;
+
+          showQuestion();
         });
       });
     }
 
     function submitAnswer(option) {
+      // Disable buttons immediately
       document.getElementById("btnA").disabled = true;
       document.getElementById("btnB").disabled = true;
 
-      const activeRef = db.ref("activeQuestion");
-      activeRef.once("value").then(snap => {
+      // Get current active question ID
+      db.ref("activeQuestion").once("value", snap => {
         const data = snap.val();
-        if (!data) return;
+        if (!data) {
+          showWaitingForNextQuestion();
+          return;
+        }
 
         const qid = data.qid;
 
-        db.ref("responses/" + rollNumber + "/" + qid).once("value", existingSnap => {
+        // Check if already answered this question
+        db.ref("responses/" + appState.rollNumber + "/" + qid).once("value", existingSnap => {
           if (existingSnap.exists()) {
             alert("You already answered this question!");
-            showWaiting();
+            showWaitingForNextQuestion();
             return;
           }
 
-          db.ref("responses/" + rollNumber + "/" + qid).set({
-            answer: option,
-            timestamp: Date.now()
-          });
-
-          db.ref("stats/" + qid + "/" + option).transaction(val => {
-            return (val || 0) + 1;
-          });
-
-          db.ref("overallStats/total" + option).transaction(val => {
-            return (val || 0) + 1;
-          });
-
-          db.ref("overallStats/totalResponses").transaction(val => {
-            return (val || 0) + 1;
-          });
-
-          const studentRef = db.ref("students/" + rollNumber);
-          studentRef.transaction(student => {
-            if (!student) {
-              student = { totalAnswered: 0, totalA: 0, totalB: 0 };
-            }
-            student.totalAnswered = (student.totalAnswered || 0) + 1;
-            if (option === "A") {
-              student.totalA = (student.totalA || 0) + 1;
-            } else {
-              student.totalB = (student.totalB || 0) + 1;
-            }
-            student.lastActive = Date.now();
-            return student;
-          });
-
-          db.ref("activeQuestion/respondedCount").transaction(val => {
-            return (val || 0) + 1;
-          });
-
-          loadStudentSummary();
-          showWaiting();
+          // Save response
+          saveStudentResponse(qid, option);
         });
       });
     }
 
-    function loadStudentSummary() {
-      // First, remove any existing listener
-      db.ref("students/" + rollNumber).off("value");
-      
-      // Then create new listener
-      db.ref("students/" + rollNumber).on("value", snap => {
+    function saveStudentResponse(qid, option) {
+      const roll = appState.rollNumber;
+      const timestamp = Date.now();
+
+      // Save student's response
+      db.ref("responses/" + roll + "/" + qid).set({
+        answer: option,
+        timestamp: timestamp
+      });
+
+      // Update question statistics
+      db.ref("stats/" + qid + "/" + option).transaction(val => {
+        return (val || 0) + 1;
+      });
+
+      // Update overall statistics
+      db.ref("overallStats/total" + option).transaction(val => {
+        return (val || 0) + 1;
+      });
+
+      db.ref("overallStats/totalResponses").transaction(val => {
+        return (val || 0) + 1;
+      });
+
+      // Update student record
+      db.ref("students/" + roll).transaction(student => {
+        if (!student) {
+          student = { totalAnswered: 0, totalA: 0, totalB: 0 };
+        }
+        student.totalAnswered = (student.totalAnswered || 0) + 1;
+        if (option === "A") {
+          student.totalA = (student.totalA || 0) + 1;
+        } else {
+          student.totalB = (student.totalB || 0) + 1;
+        }
+        student.lastActive = timestamp;
+        return student;
+      });
+
+      // Update response count for question
+      db.ref("activeQuestion/respondedCount").transaction(val => {
+        return (val || 0) + 1;
+      });
+
+      // Show waiting state
+      showWaitingForNextQuestion();
+    }
+
+    // ==================== STATISTICS & HISTORY ====================
+    function updateStudentStats() {
+      // Remove old listener if exists
+      if (appState.listeners.studentStats) {
+        db.ref("students/" + appState.rollNumber).off("value", appState.listeners.studentStats);
+      }
+
+      // Create new listener
+      appState.listeners.studentStats = db.ref("students/" + appState.rollNumber).on("value", snap => {
         const student = snap.val();
         if (!student) return;
 
         const totalA = student.totalA || 0;
         const totalB = student.totalB || 0;
         const total = student.totalAnswered || 0;
-        
+
         if (total > 0) {
-          document.getElementById("graphContainer").classList.remove("hidden");
-          
-          const percA = total > 0 ? Math.round((totalA / total) * 100) : 0;
-          const percB = total > 0 ? Math.round((totalB / total) * 100) : 0;
-          
+          const percA = Math.round((totalA / total) * 100);
+          const percB = Math.round((totalB / total) * 100);
+
           document.getElementById("countA").innerText = totalA;
           document.getElementById("countB").innerText = totalB;
           document.getElementById("percA").innerText = percA;
           document.getElementById("percB").innerText = percB;
-          
-          setTimeout(() => {
-            const container = document.getElementById("graphContainer");
-            const svgElements = container.querySelectorAll('svg');
-            
-            if (svgElements.length > 0) {
-              const svgWidth = svgElements[0].clientWidth;
-              const barWidth = svgWidth > 0 ? svgWidth : container.offsetWidth - 50;
-              
-              document.getElementById("barA").setAttribute("width", (percA / 100) * barWidth);
-              document.getElementById("barB").setAttribute("width", (percB / 100) * barWidth);
-            }
-          }, 150);
+
+          updateGraphBars("barA", percA);
+          updateGraphBars("barB", percB);
         }
       });
     }
 
+    function updateGraphBars(barId, percentage) {
+      setTimeout(() => {
+        const bar = document.getElementById(barId);
+        const svgContainer = bar.parentElement;
+        
+        if (svgContainer && svgContainer.clientWidth) {
+          const barWidth = (percentage / 100) * (svgContainer.clientWidth - 10);
+          bar.setAttribute("width", barWidth);
+        }
+      }, 100);
+    }
+
     function toggleAnswerHistory() {
       const historyDiv = document.getElementById("answerHistory");
+      
       if (historyDiv.classList.contains("hidden")) {
         loadAnswerHistory();
         historyDiv.classList.remove("hidden");
@@ -998,51 +1022,35 @@
     function loadAnswerHistory() {
       const answerList = document.getElementById("answerList");
       answerList.innerHTML = "<p class='loading'>Loading...</p>";
-      
-      db.ref("responses/" + rollNumber).once("value", responsesSnap => {
+
+      db.ref("responses/" + appState.rollNumber).once("value", responsesSnap => {
         if (!responsesSnap.exists()) {
           answerList.innerHTML = "<p class='loading'>No answers yet.</p>";
           return;
         }
-        
+
         const responses = responsesSnap.val();
-        const questionIds = Object.keys(responses);
-        
+        const questionIds = Object.keys(responses).sort();
+
         if (questionIds.length === 0) {
           answerList.innerHTML = "<p class='loading'>No answers yet.</p>";
           return;
         }
-        
+
         answerList.innerHTML = "";
         let loadedCount = 0;
-        
+
         questionIds.forEach((qid, index) => {
           db.ref("questions/" + qid).once("value", qSnap => {
             const question = qSnap.val();
             const response = responses[qid];
-            const answer = typeof response === 'string' ? response : response.answer;
-            
+            const answer = typeof response === "string" ? response : response.answer;
+
             if (question) {
-              const answerDiv = document.createElement("div");
-              answerDiv.className = "answer-item";
-              answerDiv.style.borderLeftColor = answer === "A" ? "#3b82f6" : "#10b981";
-              
-              answerDiv.innerHTML = `
-                <div class="answer-question-number">Question ${index + 1}:</div>
-                <div class="answer-question-text">${question.text}</div>
-                <div style="margin-top: 12px;">
-                  <div style="padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; background: ${answer === "A" ? "#dbeafe" : "#f7fafc"}; border-left: 3px solid ${answer === "A" ? "#3b82f6" : "#e5e7eb"};">
-                    <strong style="color: ${answer === "A" ? "#3b82f6" : "#6b7280"};">A:</strong> ${question.optionA}${answer === "A" ? " ✓" : ""}
-                  </div>
-                  <div style="padding: 10px 12px; border-radius: 8px; background: ${answer === "B" ? "#d1fae5" : "#f7fafc"}; border-left: 3px solid ${answer === "B" ? "#10b981" : "#e5e7eb"};">
-                    <strong style="color: ${answer === "B" ? "#10b981" : "#6b7280"};">B:</strong> ${question.optionB}${answer === "B" ? " ✓" : ""}
-                  </div>
-                </div>
-              `;
-              
+              const answerDiv = createAnswerItem(question, answer, index + 1);
               answerList.appendChild(answerDiv);
             }
-            
+
             loadedCount++;
             if (loadedCount === questionIds.length && answerList.children.length === 0) {
               answerList.innerHTML = "<p class='loading'>Questions not found.</p>";
@@ -1052,60 +1060,95 @@
       });
     }
 
-    function showPollNotStarted() {
-      document.getElementById("pollNotStarted").classList.remove("hidden");
-      document.getElementById("waiting").classList.add("hidden");
-      document.getElementById("questionBox").classList.add("hidden");
-      document.getElementById("pollEnded").classList.add("hidden");
-    }
+    function createAnswerItem(question, answer, questionNumber) {
+      const isAnswerA = answer === "A";
+      const div = document.createElement("div");
+      div.className = "answer-item";
+      div.style.borderLeftColor = isAnswerA ? "#3b82f6" : "#10b981";
 
-    function showWaiting() {
-      document.getElementById("waiting").classList.remove("hidden");
-      document.getElementById("pollNotStarted").classList.add("hidden");
-      document.getElementById("questionBox").classList.add("hidden");
-      document.getElementById("pollEnded").classList.add("hidden");
-    }
+      div.innerHTML = `
+        <div class="answer-question-number">Question ${questionNumber}</div>
+        <div class="answer-question-text">${question.text}</div>
+        <div style="margin-top: 12px;">
+          <div style="padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; background: ${isAnswerA ? "#dbeafe" : "#f7fafc"}; border-left: 3px solid ${isAnswerA ? "#3b82f6" : "#e5e7eb"};">
+            <strong style="color: ${isAnswerA ? "#3b82f6" : "#6b7280"};">A:</strong> ${question.optionA}${isAnswerA ? " ✓" : ""}
+          </div>
+          <div style="padding: 10px 12px; border-radius: 8px; background: ${!isAnswerA ? "#d1fae5" : "#f7fafc"}; border-left: 3px solid ${!isAnswerA ? "#10b981" : "#e5e7eb"};">
+            <strong style="color: ${!isAnswerA ? "#10b981" : "#6b7280"};">B:</strong> ${question.optionB}${!isAnswerA ? " ✓" : ""}
+          </div>
+        </div>
+      `;
 
-    function showPollEnded() {
-      document.getElementById("pollEnded").classList.remove("hidden");
-      document.getElementById("pollNotStarted").classList.add("hidden");
-      document.getElementById("waiting").classList.add("hidden");
-      document.getElementById("questionBox").classList.add("hidden");
-      
-      // Display final statistics
-      loadFinalStats();
+      return div;
     }
 
     function loadFinalStats() {
-      db.ref("students/" + rollNumber).once("value", snap => {
+      db.ref("students/" + appState.rollNumber).once("value", snap => {
         const student = snap.val();
         if (!student) return;
 
         const totalA = student.totalA || 0;
         const totalB = student.totalB || 0;
         const total = student.totalAnswered || 0;
-        
+
         const percA = total > 0 ? Math.round((totalA / total) * 100) : 0;
         const percB = total > 0 ? Math.round((totalB / total) * 100) : 0;
-        
+
         document.getElementById("finalCountA").innerText = totalA;
         document.getElementById("finalCountB").innerText = totalB;
         document.getElementById("finalPercA").innerText = percA;
         document.getElementById("finalPercB").innerText = percB;
-        
-        setTimeout(() => {
-          const container = document.getElementById("finalGraphContainer");
-          const svgElements = container.querySelectorAll('svg');
-          
-          if (svgElements.length > 0) {
-            const svgWidth = svgElements[0].clientWidth;
-            const barWidth = svgWidth > 0 ? svgWidth : container.offsetWidth - 50;
-            
-            document.getElementById("finalBarA").setAttribute("width", (percA / 100) * barWidth);
-            document.getElementById("finalBarB").setAttribute("width", (percB / 100) * barWidth);
-          }
-        }, 150);
+
+        updateGraphBars("finalBarA", percA);
+        updateGraphBars("finalBarB", percB);
       });
+    }
+
+    // ==================== LOGOUT ====================
+    function logout() {
+      // Clear all Firebase listeners
+      db.ref("pollSession").off();
+      db.ref("activeQuestion").off();
+      if (appState.studentStats) {
+        db.ref("students/" + appState.rollNumber).off();
+      }
+
+      // Clear localStorage
+      localStorage.clear();
+
+      // Reset state
+      appState = {
+        rollNumber: "",
+        studentName: "",
+        listeners: {}
+      };
+
+      // Hide all UI
+      hideAllStates();
+      document.getElementById("header").classList.add("hidden");
+      document.getElementById("loginBox").classList.remove("hidden");
+
+      // Clear form fields
+      document.getElementById("name").value = "";
+      document.getElementById("roll").value = "";
+
+      // Reset statistics
+      resetStatisticsDisplay();
+
+      // Reload page
+      setTimeout(() => {
+        location.reload();
+      }, 300);
+    }
+
+    function resetStatisticsDisplay() {
+      document.getElementById("countA").innerText = "0";
+      document.getElementById("countB").innerText = "0";
+      document.getElementById("percA").innerText = "0";
+      document.getElementById("percB").innerText = "0";
+      document.getElementById("barA").setAttribute("width", "0");
+      document.getElementById("barB").setAttribute("width", "0");
+      document.getElementById("answerList").innerHTML = "";
     }
   </script>
 </body>
