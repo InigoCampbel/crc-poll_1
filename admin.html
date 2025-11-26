@@ -276,10 +276,27 @@
     document.getElementById("pollView").classList.remove("hidden");
     document.getElementById("summaryView").classList.add("hidden");
     
-    // Show appropriate button
-    document.getElementById("startBtn").classList.remove("hidden");
-    document.getElementById("nextBtn").classList.add("hidden");
-    document.getElementById("endBtn").classList.add("hidden");
+    // Check if this question is currently active
+    db.ref("activeQuestion").once("value", snap => {
+      const activeQ = snap.val();
+      
+      if (activeQ && activeQ.status === "active" && activeQ.qid === q.id) {
+        // Question is active - hide start, show next/end
+        document.getElementById("startBtn").classList.add("hidden");
+        if (currentQuestionIndex === allQuestions.length - 1) {
+          document.getElementById("nextBtn").classList.add("hidden");
+          document.getElementById("endBtn").classList.remove("hidden");
+        } else {
+          document.getElementById("nextBtn").classList.remove("hidden");
+          document.getElementById("endBtn").classList.add("hidden");
+        }
+      } else {
+        // Question not active yet - show start button
+        document.getElementById("startBtn").classList.remove("hidden");
+        document.getElementById("nextBtn").classList.add("hidden");
+        document.getElementById("endBtn").classList.add("hidden");
+      }
+    });
     
     resetCurrentStats();
   }
