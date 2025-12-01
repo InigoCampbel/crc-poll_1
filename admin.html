@@ -24,7 +24,7 @@
 
 <div id="panel" class="container hidden">
   <div class="header-actions">
-    <h2>📊 Admin Control Panel</h2>
+    <h2>Admin Control Panel - Batch 1</h2>
     <button onclick="logout()" class="danger">Logout</button>
   </div>
 
@@ -223,17 +223,30 @@
       
       allQuestions.sort((a, b) => a.id - b.id);
       
-      // Restore saved position
-      const savedIndex = localStorage.getItem("currentQuestionIndex");
-      if (savedIndex) {
-        currentQuestionIndex = parseInt(savedIndex);
-      }
-      
       document.getElementById("totalQNum").textContent = allQuestions.length;
       
+      // Restore position from Firebase (more reliable than localStorage)
+      db.ref("pollSession/currentQuestionIndex").once("value", indexSnap => {
+        if (indexSnap.exists()) {
+          currentQuestionIndex = indexSnap.val();
+          localStorage.setItem("currentQuestionIndex", currentQuestionIndex);
+        } else {
+          // Fallback to localStorage if Firebase doesn't have it
+          const savedIndex = localStorage.getItem("currentQuestionIndex");
+          if (savedIndex) {
+            currentQuestionIndex = parseInt(savedIndex);
+          }
+        }
+        
+        displayCurrentQuestion();
+        watchCurrentQuestionStats();
+        
+        // Restore button states based on poll status
+        restorePollState();
+      });
+      
       loadStudentCount();
-      displayCurrentQuestion();
-      watchCurrentQuestionStats();
+
 
       // Initialize or fetch pollSession state
       db.ref("pollSession").once("value", snap => {
@@ -261,6 +274,33 @@
     });
   }
 
+
+
+  function restorePollState() {
+    db.ref("pollSession").once("value", snap => {
+      const session = snap.val();
+      
+      if (session && session.status === "active") {
+        // Poll was active, restore the UI state
+        document.getElementById("startBtn").classList.add("hidden");
+        
+        if (currentQuestionIndex === allQuestions.length - 1) {
+          // Last question
+          document.getElementById("nextBtn").classList.add("hidden");
+          document.getElementById("endBtn").classList.remove("hidden");
+        } else {
+          // Not last question
+          document.getElementById("nextBtn").classList.remove("hidden");
+          document.getElementById("endBtn").classList.add("hidden");
+        }
+      }
+      
+      loadStudentCount();
+    });
+  }
+
+
+
   function displayCurrentQuestion() {
     if (currentQuestionIndex >= allQuestions.length) {
       showSummary();
@@ -276,27 +316,10 @@
     document.getElementById("pollView").classList.remove("hidden");
     document.getElementById("summaryView").classList.add("hidden");
     
-    // Check if this question is currently active
-    db.ref("activeQuestion").once("value", snap => {
-      const activeQ = snap.val();
-      
-      if (activeQ && activeQ.status === "active" && activeQ.qid === q.id) {
-        // Question is active - hide start, show next/end
-        document.getElementById("startBtn").classList.add("hidden");
-        if (currentQuestionIndex === allQuestions.length - 1) {
-          document.getElementById("nextBtn").classList.add("hidden");
-          document.getElementById("endBtn").classList.remove("hidden");
-        } else {
-          document.getElementById("nextBtn").classList.remove("hidden");
-          document.getElementById("endBtn").classList.add("hidden");
-        }
-      } else {
-        // Question not active yet - show start button
-        document.getElementById("startBtn").classList.remove("hidden");
-        document.getElementById("nextBtn").classList.add("hidden");
-        document.getElementById("endBtn").classList.add("hidden");
-      }
-    });
+    // Show appropriate button
+    document.getElementById("startBtn").classList.remove("hidden");
+    document.getElementById("nextBtn").classList.add("hidden");
+    document.getElementById("endBtn").classList.add("hidden");
     
     resetCurrentStats();
   }
@@ -309,7 +332,8 @@
     db.ref("pollSession").set({
       status: "active",
       message: "Poll is now active!",
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
+      currentQuestionIndex: currentQuestionIndex  
     });
     
     db.ref("activeQuestion").set({
@@ -372,12 +396,19 @@
     } else {
       // Move to next question and auto-start it
       const nextQ = allQuestions[currentQuestionIndex];
-      db.ref("activeQuestion").set({
-        status: "active",
-        qid: nextQ.id,
-        startedAt: Date.now(),
-        respondedCount: 0
-      }).then(() => {
+      
+      // Update both activeQuestion AND pollSession with current index
+      Promise.all([
+        db.ref("activeQuestion").set({
+          status: "active",
+          qid: nextQ.id,
+          startedAt: Date.now(),
+          respondedCount: 0
+        }),
+        db.ref("pollSession").update({
+          currentQuestionIndex: currentQuestionIndex  // ADD THIS
+        })
+      ]).then(() => {
         displayCurrentQuestion();
         
         // Update button states for next question
@@ -559,7 +590,8 @@
       deletePromises.push(db.ref("pollSession").set({
         status: "not_started",
         message: "Poll will begin soon...",
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
+        currentQuestionIndex: 0  // ADD THIS LINE
       }));
       
       Promise.all(deletePromises).then(() => {
